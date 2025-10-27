@@ -98,30 +98,45 @@ class BinanceOnlyService:
             print(f"[币安] 交易执行失败: {e}")
     
     def start_listening(self):
-        """开始监听Redis队列"""
-        print(f"[币安] 开始监听队列: {self.redis_config.trading_queue}")
+        """开始监听Redis频道（PUB/SUB模式）"""
+        print(f"[币安] 开始订阅频道: {self.redis_config.trading_queue}")
         print("[币安] 按 Ctrl+C 停止服务\n")
         
+        # 创建pubsub对象
+        pubsub = self.redis_client.pubsub()
+        
         try:
-            while True:
+            # 订阅频道
+            pubsub.subscribe(self.redis_config.trading_queue)
+            print(f"[币安] 已订阅频道: {self.redis_config.trading_queue}")
+            
+            # 监听消息
+            for message in pubsub.listen():
                 try:
-                    # 监听队列
-                    result = self.redis_client.blpop(self.redis_config.trading_queue, timeout=1)
+                    # 跳过订阅确认消息
+                    if message['type'] == 'subscribe':
+                        print(f"[币安] 订阅成功: {message['channel']}")
+                        continue
                     
-                    if result:
-                        _, message = result
-                        self.handle_btc_signal(message)
+                    # 处理实际消息
+                    if message['type'] == 'message':
+                        data = message['data']
+                        self.handle_btc_signal(data)
                     
                 except redis.ConnectionError as e:
                     print(f"[币安] Redis连接错误: {e}")
                     time.sleep(5)
+                    # 重新订阅
+                    pubsub.subscribe(self.redis_config.trading_queue)
                 except Exception as e:
-                    print(f"[币安] 监听错误: {e}")
+                    print(f"[币安] 消息处理错误: {e}")
                     time.sleep(1)
                     
         except KeyboardInterrupt:
             print("\n[币安] 停止服务")
         finally:
+            pubsub.unsubscribe()
+            pubsub.close()
             self.redis_client.close()
 
 
