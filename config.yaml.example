@@ -1,0 +1,23 @@
+# 交易机器人配置文件示例
+# 使用方法：复制此文件为 config.yaml 并填入真实的配置信息
+
+# Redis配置
+redis:
+  host: localhost
+  port: 6379
+  password: null  # 如果没有密码，保持为null
+  db: 0
+  decode_responses: true
+  trading_queue: 'okx:trading:signals'
+
+# 币安API配置
+binance:
+  api_key: 'YOUR_BINANCE_API_KEY'  # 请替换为您的币安API密钥
+  secret_key: 'YOUR_BINANCE_SECRET_KEY'  # 请替换为您的币安Secret密钥
+  leverage: 150  # 杠杆倍数
+
+# 数量映射配置
+# Redis消息中的数量 -> 实际下单数量
+quantity_mapping:
+  1: 0.001  # 当消息中数量为1时，实际下单0.001 BTC
+
